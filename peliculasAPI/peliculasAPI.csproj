@@ -13,6 +13,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.5" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.1.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,5 +23,6 @@
     <Folder Include="Controllers\" />
     <Folder Include="ApiBehavior\" />
     <Folder Include="DTOs\" />
+    <Folder Include="Utilidades\" />
   </ItemGroup>
 </Project>
