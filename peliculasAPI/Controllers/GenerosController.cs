@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using peliculasAPI.Entidades;
 
@@ -16,19 +17,26 @@ namespace peliculasAPI.Controllers
     {
 
         private readonly ILogger<GenerosController> logger;
+        private readonly ApplicationDbContext context;
 
-        public GenerosController(ILogger<GenerosController> logger)
+        public GenerosController(ILogger<GenerosController> logger, ApplicationDbContext context)
         {
             this.logger = logger;
+            this.context = context;
         }
 
         [HttpGet]
-        public ActionResult<List<Genero>> Get()
+        public async Task<ActionResult<List<Genero>>> Get()
         {
-            return new List<Genero>()
-            {
-                new Genero{Id = 1, Nombre = "Comedia"}
-            };
+            return await context.Generos.ToListAsync();
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> Post([FromBody] Genero genero)
+        {
+            context.Add(genero);
+            await context.SaveChangesAsync();
+            return NoContent();
         }
 
         
