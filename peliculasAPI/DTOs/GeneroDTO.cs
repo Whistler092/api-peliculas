@@ -3,8 +3,8 @@ namespace peliculasAPI.DTOs
 {
     public class GeneroDTO
     {
-        public GeneroDTO()
-        {
-        }
+        public int Id { get; set; }
+
+        public string Nombre { get; set; }
     }
 }

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using peliculasAPI.DTOs;
 using peliculasAPI.Entidades;
+using peliculasAPI.Utilidades;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -30,11 +31,30 @@ namespace peliculasAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<GeneroDTO>>> Get()
+        public async Task<ActionResult<List<GeneroDTO>>> Get([FromQuery] PaginacionDTO paginacionDTO)
         {
-            var generos = await context.Generos.ToListAsync();
+            var queryable = context.Generos.AsQueryable();
+
+            await HttpContext.IntertarParametrosPaginacionEnCabecera(queryable);
+
+            var generos = await queryable
+                .OrderBy(x => x.Nombre)
+                .Paginar(paginacionDTO)
+                .ToListAsync();
 
             return mapper.Map<List<GeneroDTO>>(generos);
+        }
+
+        [HttpGet("{Id:int}")]
+        public async Task<ActionResult<GeneroDTO>> Get(int Id)
+        {
+            var genero = await context.Generos.FirstOrDefaultAsync(i => i.Id == Id);
+            if (genero == null)
+            {
+                return NotFound();
+            }
+
+            return mapper.Map<GeneroDTO>(genero);
         }
 
         [HttpPost]
@@ -47,6 +67,34 @@ namespace peliculasAPI.Controllers
             return NoContent();
         }
 
-        
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult> Put(int id, [FromBody] GeneroCreacionDTO generoCreacionDTO)
+        {
+            var genero = await context.Generos.FirstOrDefaultAsync(i => i.Id == id);
+            if (genero == null)
+            {
+                return NotFound();
+            }
+
+            genero = mapper.Map(generoCreacionDTO, genero);
+            await context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            var existe = await context.Generos.AnyAsync(x => x.Id == id);
+            if (!existe)
+            {
+                return NotFound();
+            }
+
+            context.Remove(new Genero() { Id = id });
+            await context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
     }
 }
