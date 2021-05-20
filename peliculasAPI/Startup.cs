@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using peliculasAPI.ApiBehavior;
 using peliculasAPI.Filtros;
+using peliculasAPI.Utilidades;
 
 namespace peliculasAPI
 {
@@ -33,6 +34,7 @@ namespace peliculasAPI
         {
             services.AddAutoMapper(typeof(Startup));
 
+            services.AddTransient<IAlmacenadorArchivos, AlmacenadorAzureStorage>();
 
             services.AddDbContext<ApplicationDbContext>(
                 options => options.UseSqlServer(Configuration.GetConnectionString("defaultConnection"))
