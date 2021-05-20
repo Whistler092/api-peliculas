@@ -36,6 +36,8 @@ namespace peliculasAPI
 
             services.AddTransient<IAlmacenadorArchivos, AlmacenadorAzureStorage>();
 
+            services.AddHttpContextAccessor();
+
             services.AddDbContext<ApplicationDbContext>(
                 options => options.UseSqlServer(Configuration.GetConnectionString("defaultConnection"))
             );
@@ -81,6 +83,8 @@ namespace peliculasAPI
             }
 
             app.UseHttpsRedirection();
+
+            app.UseStaticFiles();
 
             app.UseRouting();
 
