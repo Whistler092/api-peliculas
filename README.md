@@ -12,3 +12,10 @@
 - [Validaciones personalizadas](https://gist.github.com/Whistler092/8b528cef5e4372c9eea8624a97d0fc29)
 - [dapper](https://gist.github.com/Whistler092/abfe58773f90f75e085038c9273a56c2)
 
+
+
+# migrations
+
+dotnet ef migrations add Cines
+
+dotnet ef database update
