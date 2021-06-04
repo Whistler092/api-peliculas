@@ -14,6 +14,8 @@ namespace peliculasAPI.Entidades
         [PrimeraLetraMayuscula]
         public string Nombre { get; set; }
 
+        public List<PeliculasGeneros> PeliculasGeneros { get; set; }
+
     }
 
 }

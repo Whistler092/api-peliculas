@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace peliculasAPI.Entidades
@@ -16,5 +17,8 @@ namespace peliculasAPI.Entidades
         public DateTime FechaNacimiento { get; set; }
 
         public string Foto { get; set; }
+
+        public List<PeliculasActores> PeliculasActores { get; set; }
+
     }
 }
