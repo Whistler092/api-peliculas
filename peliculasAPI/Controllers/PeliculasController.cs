@@ -50,6 +50,95 @@ namespace peliculasAPI.Controllers
                                 
         }
 
+        [HttpGet]
+        public async Task<ActionResult<LandingPageDTO>> Get()
+        {
+            var top = 6;
+            var hoy = DateTime.Now;
+
+            var proximosEstrenos = await context.Peliculas
+                .Where(x => x.FechaLanzamiento > hoy)
+                .OrderBy(x => x.FechaLanzamiento)
+                .Take(top)
+                .ToListAsync();
+
+            var enCines = await context.Peliculas
+                .Where(x => x.EnCines)
+                .OrderBy(x => x.FechaLanzamiento)
+                .Take(top)
+                .ToListAsync();
+
+            var resultado = new LandingPageDTO()
+            {
+                ProximosEstrenos = mapper.Map<List<PeliculaDTO>>(proximosEstrenos),
+                EnCines = mapper.Map<List<PeliculaDTO>>(enCines)
+            };
+            return resultado;
+        }
+
+        [HttpGet("PutGet/{id:int}")]
+        public async Task<ActionResult<PeliculasPutGetDTO>> PutGet(int id)
+        {
+            var peliculaActionResult = await Get(id);
+            if (peliculaActionResult.Result is NotFoundResult)
+            {
+                return NotFound();
+            }
+
+            var pelicula = peliculaActionResult.Value;
+            
+            var generosSeleccionadoIds = pelicula.Generos.Select(x => x.Id).ToList();
+            var generosNoSeleccionados = await context.Generos
+                .Where(x => !generosSeleccionadoIds.Contains(x.Id))
+                .ToListAsync();
+            
+            var cinesSeleccionadoIds = pelicula.Cines.Select(x => x.Id).ToList();
+            var cinesNoSeleccionados = await context.Cines
+                .Where(x => !cinesSeleccionadoIds.Contains(x.Id))
+                .ToListAsync();
+
+            var generosNoSeleccionadosDTO = mapper.Map<List<GeneroDTO>>(generosNoSeleccionados);
+            var cinesNoSeleccionadosDTO = mapper.Map<List<CineDTO>>(cinesNoSeleccionados);
+
+            var respuesta = new PeliculasPutGetDTO
+            {
+                Pelicula = pelicula,
+                GenerosSeleccionados = pelicula.Generos,
+                GenerosNoSeleccionados = generosNoSeleccionadosDTO,
+                CinesSeleccionados = pelicula.Cines,
+                CinesNoSeleccionados = cinesNoSeleccionadosDTO,
+                Actores = pelicula.Actores
+            };
+            return respuesta;
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult> Put(int id, [FromForm] PeliculaCreacionDTO peliculaCreacionDto)
+        {
+            var pelicula = await context.Peliculas
+                .Include(x => x.PeliculasActores)
+                .Include(x => x.PeliculasCines)
+                .Include(x => x.PeliculasGeneros)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (pelicula == null)
+            {
+                return NotFound();
+            }
+
+            pelicula = mapper.Map(peliculaCreacionDto, pelicula);
+            if (peliculaCreacionDto.Poster != null)
+            {
+                pelicula.Poster =
+                    await almacenadorArchivos.EditarArchivo(contenedor, peliculaCreacionDto.Poster, pelicula.Poster);
+            }
+            
+            EscribirOrdenActores(pelicula);
+
+            await context.SaveChangesAsync();
+            return NoContent();
+        }
+
         [HttpGet("PostGet")]
         public async Task<ActionResult<PeliculasPostGetDTO>> PostGet()
         {
