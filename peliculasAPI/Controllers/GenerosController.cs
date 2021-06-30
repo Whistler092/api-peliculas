@@ -18,7 +18,6 @@ namespace peliculasAPI.Controllers
     [ApiController]
     public class GenerosController : ControllerBase
     {
-
         private readonly ILogger<GenerosController> logger;
         private readonly ApplicationDbContext context;
         private readonly IMapper mapper;
@@ -42,6 +41,15 @@ namespace peliculasAPI.Controllers
                 .Paginar(paginacionDTO)
                 .ToListAsync();
 
+            return mapper.Map<List<GeneroDTO>>(generos);
+        }
+
+        [HttpGet("todos")]
+        public async Task<ActionResult<List<GeneroDTO>>> Todos()
+        {
+            var generos = await context.Generos
+                .OrderBy(genero => genero.Nombre)
+                .ToListAsync();
             return mapper.Map<List<GeneroDTO>>(generos);
         }
 
@@ -90,11 +98,10 @@ namespace peliculasAPI.Controllers
                 return NotFound();
             }
 
-            context.Remove(new Genero() { Id = id });
+            context.Remove(new Genero() {Id = id});
             await context.SaveChangesAsync();
 
             return NoContent();
         }
-
     }
 }

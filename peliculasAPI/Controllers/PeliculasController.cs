@@ -33,12 +33,12 @@ namespace peliculasAPI.Controllers
         public async Task<ActionResult<PeliculaDTO>> Get(int id)
         {
             var pelicula = await context.Peliculas
-                                .Include(x => x.PeliculasGeneros).ThenInclude(x => x.Genero)
-                                .Include(x => x.PeliculasActores).ThenInclude(x => x.Actor)
-                                .Include(x => x.PeliculasCines).ThenInclude(x => x.Cine)
-                                .FirstOrDefaultAsync(x => x.Id == id);
+                .Include(x => x.PeliculasGeneros).ThenInclude(x => x.Genero)
+                .Include(x => x.PeliculasActores).ThenInclude(x => x.Actor)
+                .Include(x => x.PeliculasCines).ThenInclude(x => x.Cine)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if(pelicula == null)
+            if (pelicula == null)
             {
                 return NotFound();
             }
@@ -47,7 +47,6 @@ namespace peliculasAPI.Controllers
 
             dto.Actores = dto.Actores.OrderBy(x => x.Orden).ToList();
             return dto;
-                                
         }
 
         [HttpGet]
@@ -86,12 +85,12 @@ namespace peliculasAPI.Controllers
             }
 
             var pelicula = peliculaActionResult.Value;
-            
+
             var generosSeleccionadoIds = pelicula.Generos.Select(x => x.Id).ToList();
             var generosNoSeleccionados = await context.Generos
                 .Where(x => !generosSeleccionadoIds.Contains(x.Id))
                 .ToListAsync();
-            
+
             var cinesSeleccionadoIds = pelicula.Cines.Select(x => x.Id).ToList();
             var cinesNoSeleccionados = await context.Cines
                 .Where(x => !cinesSeleccionadoIds.Contains(x.Id))
@@ -132,7 +131,7 @@ namespace peliculasAPI.Controllers
                 pelicula.Poster =
                     await almacenadorArchivos.EditarArchivo(contenedor, peliculaCreacionDto.Poster, pelicula.Poster);
             }
-            
+
             EscribirOrdenActores(pelicula);
 
             await context.SaveChangesAsync();
@@ -154,8 +153,7 @@ namespace peliculasAPI.Controllers
                 Cines = cinesDTO,
                 Generos = generosDTO
             };
-
-        } 
+        }
 
         [HttpPost]
         public async Task<ActionResult> Post([FromForm] PeliculaCreacionDTO peliculaCreacionDTO)
@@ -187,5 +185,55 @@ namespace peliculasAPI.Controllers
             }
         }
 
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            var pelicula = await context.Peliculas.FirstOrDefaultAsync(x => x.Id == id);
+            if (pelicula == null)
+            {
+                return NotFound();
+            }
+
+            context.Remove(pelicula);
+            await context.SaveChangesAsync();
+            await almacenadorArchivos.BorrarArchivo(pelicula.Poster, contenedor);
+            return NoContent();
+        }
+
+        [HttpGet("filtrar")]
+        public async Task<ActionResult<List<PeliculaDTO>>> Filtrar([FromQuery] PeliculaFiltrarDTO peliculaFiltrarDto)
+        {
+            var peliculasQueryable = context.Peliculas.AsQueryable();
+            if (!string.IsNullOrEmpty(peliculaFiltrarDto.Titulo))
+            {
+                peliculasQueryable =
+                    peliculasQueryable.Where(pelicula => pelicula.Titulo.Contains(peliculaFiltrarDto.Titulo));
+            }
+
+            if (peliculaFiltrarDto.EnCines)
+            {
+                peliculasQueryable = peliculasQueryable.Where(pelicula => pelicula.EnCines);
+            }
+
+            if (peliculaFiltrarDto.ProximosEstrenos)
+            {
+                var hoy = DateTime.Now;
+                peliculasQueryable = peliculasQueryable.Where(pelicula => pelicula.FechaLanzamiento > hoy);
+            }
+
+            if (peliculaFiltrarDto.GeneroId != 0)
+            {
+                peliculasQueryable = peliculasQueryable
+                    .Where(pelicula =>
+                        pelicula.PeliculasGeneros.Select(y => y.GeneroId).Contains(peliculaFiltrarDto.GeneroId));
+            }
+
+            await HttpContext.IntertarParametrosPaginacionEnCabecera(peliculasQueryable);
+
+            var peliculas = await peliculasQueryable.Paginar(peliculaFiltrarDto.PaginacionDTO).ToListAsync();
+
+            return mapper.Map<List<PeliculaDTO>>(peliculas);
+            
+        }
     }
 }
