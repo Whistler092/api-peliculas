@@ -7,6 +7,9 @@
 bin/
 obj/
 .vs/
+.idea/
+
+.DS_Store
 
 # Common node modules locations
 /node_modules
