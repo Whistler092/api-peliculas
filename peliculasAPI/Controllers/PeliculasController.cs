@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using peliculasAPI.DTOs;
@@ -13,23 +16,28 @@ namespace peliculasAPI.Controllers
 {
     [ApiController]
     [Route("api/peliculas")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "EsAdmin")]
     public class PeliculasController : ControllerBase
     {
         private readonly ApplicationDbContext context;
         private readonly IMapper mapper;
         private readonly IAlmacenadorArchivos almacenadorArchivos;
+        private readonly UserManager<IdentityUser> userManager;
         private readonly string contenedor = "peliculas";
 
         public PeliculasController(ApplicationDbContext context,
             IMapper mapper,
-            IAlmacenadorArchivos almacenadorArchivos)
+            IAlmacenadorArchivos almacenadorArchivos,
+            UserManager<IdentityUser> userManager)
         {
             this.context = context;
             this.mapper = mapper;
             this.almacenadorArchivos = almacenadorArchivos;
+            this.userManager = userManager;
         }
 
         [HttpGet("{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<PeliculaDTO>> Get(int id)
         {
             var pelicula = await context.Peliculas
@@ -43,13 +51,42 @@ namespace peliculasAPI.Controllers
                 return NotFound();
             }
 
+            var promedioVoto = 0.0;
+            var votoUsuario = 0;
+
+            if (await context.Ratings.AnyAsync(x => x.PeliculaId == id))
+            {
+                promedioVoto = await context.Ratings
+                    .Where(x => x.PeliculaId == id)
+                    .AverageAsync(x => x.Puntuacion);
+
+                if (HttpContext.User.Identity.IsAuthenticated)
+                {
+                    var email = HttpContext.User.Claims.FirstOrDefault(x => x.Type == "email")?.Value;
+                    var usuario = await userManager.FindByEmailAsync(email);
+                    var usuarioId = usuario.Id;
+
+                    var ratingDb = await context.Ratings.FirstOrDefaultAsync(x => x.UsuarioId == usuarioId
+                        && x.PeliculaId == id);
+
+                    if (ratingDb != null)
+                    {
+                        votoUsuario = ratingDb.Puntuacion;
+                    }
+                }
+            }
+
             var dto = mapper.Map<PeliculaDTO>(pelicula);
+
+            dto.PromedioVoto = promedioVoto;
+            dto.VotoUsuario = votoUsuario;
 
             dto.Actores = dto.Actores.OrderBy(x => x.Orden).ToList();
             return dto;
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<LandingPageDTO>> Get()
         {
             var top = 6;
@@ -233,7 +270,6 @@ namespace peliculasAPI.Controllers
             var peliculas = await peliculasQueryable.Paginar(peliculaFiltrarDto.PaginacionDTO).ToListAsync();
 
             return mapper.Map<List<PeliculaDTO>>(peliculas);
-            
         }
     }
 }

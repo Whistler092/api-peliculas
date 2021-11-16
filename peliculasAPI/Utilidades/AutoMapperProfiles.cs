@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using NetTopologySuite.Geometries;
 using peliculasAPI.DTOs;
 using peliculasAPI.Entidades;
@@ -35,6 +36,8 @@ namespace peliculasAPI.Utilidades
                 .ForMember(x => x.Generos, options => options.MapFrom(MapearPeliculasGeneros))
                 .ForMember(x => x.Actores, options => options.MapFrom(MapearPeliculasActores))
                 .ForMember(x => x.Cines, options => options.MapFrom(MapearPeliculasCines));
+
+            CreateMap<IdentityUser, UsuarioDTO>();
         }
 
         private List<GeneroDTO> MapearPeliculasGeneros(Pelicula pelicula, PeliculaDTO peliculaDTO)
